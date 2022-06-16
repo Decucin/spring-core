@@ -20,6 +20,20 @@ public class ApplicationContext {
     public ApplicationContext(Class configClass) {
         this.configClass = configClass;
 
+        scan(configClass);
+
+        // 创建单例bean对象
+        for (String beanName : beanDefinitionMap.keySet()) {
+            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+            if(beanDefinition.getScope().equals("singleton")){
+//                Object bean = creatBean(beanName, beanDefinition);
+                Object bean = creatBean(beanName, beanDefinition);
+                singletonObjets.put(beanName, bean);
+            }
+        }
+    }
+
+    private void scan(Class configClass) {
         // 开始扫描
         if(configClass.isAnnotationPresent(ComponentScan.class)){
             ComponentScan componentScanAnnotation = (ComponentScan) configClass.getAnnotation(ComponentScan.class);
@@ -27,7 +41,7 @@ public class ApplicationContext {
             String path = componentScanAnnotation.value();
             // 但其实我们需要的文件是.class文件而不是.java
             path = path.replace(".", "/");
-            // 先找到ClassLoader里的resouce（classPath）
+            // 先找到ClassLoader里的resource（classPath）
             ClassLoader classLoader = ApplicationContext.class.getClassLoader();
             URL resource = classLoader.getResource(path);
             // 需要的是要把
@@ -43,6 +57,7 @@ public class ApplicationContext {
                         // 从类加载器中加载进去
                         String className = fileName.substring(fileName.indexOf("com"), fileName.indexOf(".class"));
                         className = className.replace("/", ".");
+                        className = className.replace("\\", ".");
                         Class<?> clazz = null;
                         try {
                             clazz = classLoader.loadClass(className);
@@ -62,7 +77,7 @@ public class ApplicationContext {
                                 }
                                 // 生成一个BeanDefinition对象
                                 BeanDefinition beanDefinition = new BeanDefinition();
-                                beanDefinition.setType(clazz);
+                                beanDefinition.setClazz(clazz);
                                 // 从scope注解判断其是单例还是多例
                                 if(clazz.isAnnotationPresent(Scope.class)){
                                     String scope = clazz.getAnnotation(Scope.class).value();
@@ -84,19 +99,10 @@ public class ApplicationContext {
                 }
             }
         }
-
-        // 创建单例bean对象
-        for (String beanName : beanDefinitionMap.keySet()) {
-            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
-            if(beanDefinition.getScope().equals("singleton")){
-                Object bean = creatBean(beanName, beanDefinition);
-                singletonObjets.put(beanName, bean);
-            }
-        }
     }
 
     private Object creatBean(String beanName, BeanDefinition beanDefinition){
-        Class clazz = beanDefinition.getType();
+        Class clazz = beanDefinition.getClazz();
         // 具有无参构造方法
         try {
             Object instance = clazz.getConstructor().newInstance();
@@ -116,7 +122,7 @@ public class ApplicationContext {
             }
 
             for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
-                instance = beanPostProcessor.postProcessorBeforeInitialization(beanName, beanDefinition);
+                instance = beanPostProcessor.postProcessorBeforeInitialization(beanName, instance);
             }
 
             // 初始化
@@ -125,7 +131,7 @@ public class ApplicationContext {
             }
 
             for (BeanPostProcessor beanPostProcessor : beanPostProcessorList) {
-                instance = beanPostProcessor.postProcessorAfterInitialization(beanName, beanDefinition);
+                instance = beanPostProcessor.postProcessorAfterInitialization(beanName, instance);
             }
 
             return instance;
@@ -142,24 +148,17 @@ public class ApplicationContext {
     }
 
     public Object getBean(String beanName){
-        BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
-        if(beanDefinition == null){
-            throw new NullPointerException();
-        }else{
-            String scope = beanDefinition.getScope();
-            // 单例bean直接拿
-            // 多例bean创建
-            if(scope.equals("singleton")){
-                Object bean = singletonObjets.get(beanName);
-                if(bean == null){
-                    Object o = creatBean(beanName, beanDefinition);
-                    singletonObjets.put(beanName, o);
-                    return o;
-                }
+        if(beanDefinitionMap.containsKey(beanName)){
+            BeanDefinition beanDefinition = beanDefinitionMap.get(beanName);
+            if(beanDefinition.getScope().equals("singleton")){
+                Object o = singletonObjets.get(beanName);
+                return o;
+            }else {
+                Object bean = creatBean(beanName, beanDefinition);
                 return bean;
-            }else{
-                return creatBean(beanName, beanDefinition);
             }
+        }else{
+            throw new NullPointerException();
         }
     }
 }

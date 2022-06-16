@@ -9,19 +9,39 @@ public class UserService implements BeanNameAware, InitializingBean, UserInterfa
     @Autowired
     private  OrderService orderService;
 
-    private String beanName;
+    private String name;
 
-    private String field;
+//    public void setOrderService(OrderService orderService) {
+//        this.orderService = orderService;
+//    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+//    public OrderService getOrderService() {
+//        return orderService;
+//    }
+
+//    public String getBeanName() {
+//        return beanName;
+//    }
+
+//    private String beanName;
 
     public void test(){
         System.out.println(orderService);
+        System.out.println(name);
     }
 
     @Override
     public void setBeanName(String beanName) {
-        this.beanName = beanName;
+        this.name = beanName;
     }
-
 
     @Override
     public void afterPropertiesSet() {

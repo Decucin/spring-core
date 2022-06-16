@@ -2,15 +2,15 @@ package com.decucin.spring;
 
 public class BeanDefinition {
 
-    private Class type;
+    private Class clazz;
     private String scope;
 
-    public Class getType() {
-        return type;
+    public Class getClazz() {
+        return clazz;
     }
 
-    public void setType(Class type) {
-        this.type = type;
+    public void setClazz(Class clazz) {
+        this.clazz = clazz;
     }
 
     public String getScope() {
@@ -20,5 +20,4 @@ public class BeanDefinition {
     public void setScope(String scope) {
         this.scope = scope;
     }
-
 }
